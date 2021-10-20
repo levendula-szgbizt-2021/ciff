@@ -10,18 +10,21 @@ void    usage(void);
 __dead void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: %s [-dhv]\n", getprogname());
+	(void)fprintf(stderr, "usage: %s [-dhv] [-o output]\n",
+	    getprogname());
 	exit(1);
 }
 
 int
 main(int argc, char **argv)
 {
+	FILE           *out;
 	int             dflag, vflag, c;
 	struct ciff    *ciff;
 
 	dflag = 0, vflag = 0;
-	while ((c = getopt(argc, argv, "dhv")) != -1) {
+	out = stdout;
+	while ((c = getopt(argc, argv, "dhvo:")) != -1) {
 		switch (c) {
 		case 'd':
 			dflag = 1;
@@ -31,6 +34,10 @@ main(int argc, char **argv)
 			break;
 		case 'v':
 			vflag = 1;
+			break;
+		case 'o':
+			if ((out = fopen(optarg, "wb")) == NULL)
+				err(1, "%s: %s", __func__, optarg);
 			break;
 		default:
 			usage();
@@ -47,6 +54,8 @@ main(int argc, char **argv)
 		ciff_dump_header(ciff, stderr);
 	if (dflag)
 		ciff_dump_pixels(ciff, stderr);
+
+	ciff_jpeg_compress(ciff, out);
 
 	free(ciff);
 	return 0;

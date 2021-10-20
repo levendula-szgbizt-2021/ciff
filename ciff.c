@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <jpeglib.h>
+
 #include "ciff.h"
 
 #define MAGIC "CIFF"
@@ -24,6 +26,8 @@ static int              _verify_magic(FILE *);
 static int              _verify_numbers(struct ciff_numbers *);
 static struct ciff *    _parse_header(struct ciff *, FILE *);
 static struct ciff *    _parse_pixels(struct ciff *, FILE *);
+unsigned char *         _px_flatten(unsigned char *, struct pixel *,
+			    long, long);
 
 /* ciff.h */
 struct ciff *           ciff_parse(struct ciff *, FILE *);
@@ -186,6 +190,21 @@ _parse_pixels(struct ciff *ciff, FILE *stream)
 	return ciff;
 }
 
+unsigned char *
+_px_flatten(unsigned char *dst, struct pixel *pxs, long width,
+    long height)
+{
+	int     i, j;
+
+	for (i = 0, j = 0; i < width * height; ++i) {
+		dst[j++] = pxs[i].px_r;
+		dst[j++] = pxs[i].px_g;
+		dst[j++] = pxs[i].px_b;
+	}
+
+	return dst;
+}
+
 
 /*---------------------------------------------------------------*
  *      ciff.h                                                   *
@@ -244,5 +263,51 @@ ciff_dump_pixels(struct ciff *ciff, FILE *stream)
 void
 ciff_jpeg_compress(struct ciff *ciff, FILE *out)
 {
-	warnx("not yet implemented");
+	struct jpeg_compress_struct     cinfo;
+	struct jpeg_error_mgr           jerr;
+	JSAMPROW                        rowptr[1];
+	int                             rowstride;
+	JSAMPLE                        *data;
+
+	/* 0. Init vars */
+	if ((data = malloc(ciff->ciff_csize * sizeof (unsigned char)))
+	    == NULL) {
+		warn("%s: malloc", __func__);
+		return;
+	}
+	if (_px_flatten(data, ciff->ciff_content, ciff->ciff_width,
+	    ciff->ciff_height)
+	    == NULL)
+		return;
+
+	/* 1. Allocate and init JPEG compression obj */
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_compress(&cinfo);
+
+	/* 2. Specify dest */
+	jpeg_stdio_dest(&cinfo, out);
+
+	/* 3. Set params */
+	cinfo.image_width = ciff->ciff_width;
+	cinfo.image_height = ciff->ciff_height;
+	cinfo.input_components = 3; /* r g b */
+	cinfo.in_color_space = JCS_RGB;
+	jpeg_set_defaults(&cinfo);
+
+	/* 4. Start compressor */
+	jpeg_start_compress(&cinfo, 1);
+
+	/* 5. iterate over data */
+	rowstride = cinfo.image_width * 3; /* JSAMPLEs per row */
+	while (cinfo.next_scanline < cinfo.image_height) {
+		rowptr[0] = &data[cinfo.next_scanline * rowstride];
+		(void)jpeg_write_scanlines(&cinfo, rowptr, 1);
+	}
+
+	/* 6. Finish */
+	jpeg_finish_compress(&cinfo);
+
+	/* 7. Cleanup */
+	free(data);
+	jpeg_destroy_compress(&cinfo);
 }
