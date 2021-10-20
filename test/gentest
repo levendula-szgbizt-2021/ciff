@@ -1,0 +1,107 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Getopt::Long 'HelpMessage';
+use feature 'switch';
+no warnings 'experimental::smartmatch';
+use Data::Dumper;
+
+sub usage;
+
+my $out;
+my $caption = "no caption";
+my @tags;
+GetOptions(
+    'caption=s' => \$caption,
+    'tag=s'     => \@tags,
+    'output=s'  => \$out,
+    'help'      => sub { HelpMessage(0) },
+) or HelpMessage(1);
+
+HelpMessage(1) unless (@ARGV == 3);
+my $type = $ARGV[0];
+my $width = $ARGV[1];
+my $height = $ARGV[2];
+
+my $magic = 'CIFF';
+my $size = 3 * $width * $height;
+my $tagstr = join("\0", @tags) . "\0";
+
+$caption .= "\n";
+my $hdrsize = 4 + 4 * 8 + (length $caption) + (length $tagstr);
+#             ^     ^
+#           magic   |
+#                8 byte nums
+
+my $hdr = pack('A4Q4', $magic, $hdrsize, $size, $width, $height)
+  . $caption
+  . $tagstr;
+
+my @pixels;
+for ($type) {
+    when ('red') { @pixels = ((255, 0, 0) x $width) x $height }
+    when ('huflag') {
+        @pixels = (
+            ((255, 0, 0) x $width) x ($height/3),       # red
+            ((255, 255, 255) x $width) x ($height/3),   # white
+            ((0, 255, 0) x $width) x ($height/3),       # green
+        );
+    }
+    when ('itflag') {
+        @pixels = (
+            (255, 0, 0) x ($width/3),       # red
+            (255, 255, 255) x ($width/3),   # white
+            (0, 255, 0) x ($width/3),       # green
+            (0, 0, 0) x ($width % 3),       # pad
+        ) x $height;
+    }
+    when ('danger') {
+        @pixels = (
+            ((255, 255, 0) x $width) x ($height/6/2),
+            ((0, 0, 0) x $width) x ($height/6/2)
+        ) x ($height/2);
+    }
+    default { die "Unknown type $type" }
+}
+my $data = pack("C$size", @pixels);
+
+my $fh;
+if ($out) {
+    open($fh, '>', $out) or die "Failed to open output file";
+} else {
+    open($fh, '>&', \*STDOUT) or die "Failed to open stdout";
+}
+
+print $fh $hdr;
+print $fh $data;
+
+
+=pod
+
+=head1 NAME
+
+gentest - generate simple CIFF test images
+
+=head1 SYNOPSIS
+
+gentest [-c caption] [-t tag] type width height
+
+  --caption,-c  Image caption (default is 'no caption')
+  --tag,-t      Image tag (this option can be specified multiple times)
+  --output,-o   Output file (default is stdout)
+
+  type          One of {red, huflag, itflag, danger} (mandatory)
+  width         Image width (mandatory)
+  height        Image height (mandatory)
+
+=head1 CAVEATS
+
+The entire array of pixels is stored in memory before writing, so the
+script currently cannot be used to generate large CIFFs.
+
+=head1 VERSION
+
+0.01
+
+=cut

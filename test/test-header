@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use 5.32.0;
+
+use File::Temp 'tempfile';
+use Term::ANSIColor;
+
+
+my $ciff = $ENV{ciff};
+$ciff ||= '../ciff';
+
+(my $fh, my $tmp) = tempfile();
+
+$SIG{INT} = sub { unlink $tmp };
+
+my %exp = (
+    width       => 1024,
+    height      => 768,
+    contentsize => 3 * 1024 * 768,
+    cap     => 'redsquare',
+    tags        => ['hu', 'flag'],
+);
+
+my $tagargs = '-t ' . join ' -t ', @{$exp{tags}};
+system("./gentest -c $exp{cap} $tagargs -o $tmp huflag $exp{width} $exp{height}")
+  == 0 or die "gentest script returned with $?";
+
+my $result = `$ciff -v <$tmp 2>&1`;
+my %act;
+($act{contentsize}, $act{width}, $act{height}, $act{cap}, $act{tags})
+= ($result =~ /content size:\s*(\d+).*width:\s*(\d+).*height:\s*(\d+).*caption:\s*(\w+).*tags:\s*((\[\w+\]\s*)+)/is);
+$act{tags} =~ s/\]\s*\[/,/g;
+$act{tags} =~ s/[\[\]]//g;
+$act{tags} = [split ',', $act{tags}];
+
+sub status {
+    (my $field, my $exp, my $act, my $ok) = @_;
+    print "$field ";
+    print(($ok) ? colored("OK", 'green') : colored("FAIL", 'red'), "\n");
+    if (not $ok) {
+        print colored("expected '$exp', got '$act'", 'red'), "\n";
+    }
+}
+
+for my $key ('width', 'height', 'contentsize') {
+    status($key, $exp{$key}, $act{$key}, $exp{$key} == $act{$key});
+}
+status('cap', $exp{cap}, $act{cap}, $exp{cap} eq $act{cap});
+status('tags', $exp{tags}, $act{tags}, @{$exp{tags}} == @{$act{tags}});
