@@ -23,6 +23,6 @@ struct ciff *   ciff_parse(struct ciff *, FILE *);
 void            ciff_dump_header(struct ciff *, FILE *);
 void            ciff_dump_pixels(struct ciff *, FILE *);
 
-void            ciff_jpeg_compress(struct ciff*, FILE *);
+void            ciff_jpeg_compress(struct ciff *, FILE *);
 
 #endif /* CIFF_H */
