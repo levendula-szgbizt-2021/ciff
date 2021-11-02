@@ -1,0 +1,126 @@
+.\" Copyright (c) 2021, Levendula <levendula-szgbizt@bp99.eu>
+.\" Author: Levendula team
+.\"
+.\" Permission to use, copy, modify, and/or distribute this software for
+.\" any purpose with or without fee is hereby granted, provided that the
+.\" above copyright notice and this permission notice appear in all
+.\" copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+.\" WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+.\" WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+.\" AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+.\" DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
+.\" OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+.\" TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+.\" PERFORMANCE OF THIS SOFTWARE.
+.Dd November 02, 2021
+.\" ----------------------------------------------------------------
+.Dt CIFF 3
+.Os
+.\" ----------------------------------------------------------------
+.Sh NAME
+.Nm ciff
+.Nd CrySyS Image File Format parser and converter library
+.\" ----------------------------------------------------------------
+.Sh SYNOPSIS
+.In ciff.h
+.Pp
+.Fd struct pixel;
+.Fd struct ciff;
+.Pp
+.Ft struct ciff *
+.Fn ciff_parse "struct ciff *dst" "FILE *stream"
+.Ft void
+.Fn ciff_dump_header "struct ciff *ciff" "FILE *stream"
+.Ft void
+.Fn ciff_dump_pixels "struct ciff *ciff" "FILE *stream"
+.Ft void
+.Fn ciff_jpeg_compress "struct ciff *ciff" "FILE *out"
+.\" ----------------------------------------------------------------
+.Sh DESCRIPTION
+The
+.Nm
+library provides structures and functions to handle
+.Em ciff
+files.
+.Pp
+The main structure that describes the data of a ciff file is
+.Vt struct ciff
+which contains the following members:
+.Bl -hang -offset indent
+.It Fa "long ciff_hsize"
+the header size of the ciff
+.It Fa "long ciff_csize"
+this content size of the ciff; always
+3 x
+.Fa width
+x
+.Fa height
+.It Fa "long ciff_width"
+the width of the image in pixels
+.It Fa "long ciff_height"
+the height of the image in pixels
+.It Fa "char *ciff_cap"
+the image caption (NUL-terminated string)
+.It Fa "char **ciff_tags"
+image tags (NULL-terminated array of NUL-terminated strings)
+.It Fa "struct pixel *ciff_content"
+image pixels (row by row, top to bottom)
+.El
+.Pp
+Each pixel is stored in a structure
+.Vt "struct pixel",
+which has the following three fields:
+.Bl -hang -offset indent
+.It Fa "unsigned_char px_r"
+the red colour value (0..255)
+.It Fa "unsigned_char px_g"
+the green colour value (0..255)
+.It Fa "unsigned_char px_b"
+the blue colour value (0..255)
+.El
+.Pp
+You can parse a new ciff image from an open stream by
+.Fn "ciff_parse",
+but the destination must be pre-allocated by the caller.
+It is also the responsibility of the caller to later
+.Fn free
+the allocated memory.
+.Pp
+.Fn ciff_dump_header
+and
+.Fn ciff_dump_pixels
+are mostly reserved for debugging purposes: they dump the header and the
+body (contents) of the ciff, respectively, to the given stream.
+.Pp
+To get an image which can be displayed in conventional viewers, use
+.Fn ciff_jpeg_compress
+, which takes a pointer to a
+.Vt "struct ciff"
+as an argument and a stream, to where it writes a JPEG-compressed image
+that is equivalent to the ciff's contents.
+.\" ----------------------------------------------------------------
+.Sh SEE ALSO
+.Xr ciff 1 ,
+.Xr ciff_parse 3 ,
+.Xr ciff_dump_header 3 ,
+.Xr ciff_dump_pixels 3 ,
+.Xr ciff_jpeg_compress 3
+.\" ----------------------------------------------------------------
+.Sh STANDARDS
+The
+.Nm ciff
+library conforms to
+.St -isoC-99 .
+.\" ----------------------------------------------------------------
+.Sh HISTORY
+The
+.Nm
+library was written by the
+.Em Levendula
+team as part of an assignment submission for the Computer Security
+(BMEVIHIMA06) course in 2021.
+.\" ----------------------------------------------------------------
+.Sh AUTHORS
+.An Levendula team Aq Mt levendula-szgbizt@bp99.eu
