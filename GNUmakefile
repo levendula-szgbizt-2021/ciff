@@ -14,6 +14,8 @@ CFLAGS         += -Wsign-compare -Wcast-qual
 
 LDFLAGS        += ${LIBS}
 
+PREFIX         ?= /usr/local
+
 ifdef DEBUG
 CFLAGS += -g -O0
 endif
@@ -26,6 +28,28 @@ ${LIB}: ${OBJS}
 
 ${CLI}: ${OBJS}
 	${CC} -o ${CLI} ${CFLAGS} ${LDFLAGS} ${OBJS}
+
+.PHONY: install-lib
+install-lib: ${LIB}
+	install ${LIB} ${PREFIX}/lib/
+
+.PHONY: install-cli
+install-cli: ${CLI}
+	install ${CLI} ${PREFIX}/bin/
+
+.PHONY: deinstall-lib
+deinstall-lib:
+	rm -f ${PREFIX}/lib/${LIB}
+
+.PHONY: deinstall-cli
+deinstall-cli:
+	rm -f ${PREFIX}/bin/${CLI}
+
+.PHONY: install
+install: install-lib install-cli
+
+.PHONY: deinstall
+deinstall: deinstall-lib deinstall-cli
 
 .PHONY: clean
 clean:
