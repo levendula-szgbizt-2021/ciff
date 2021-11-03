@@ -20,8 +20,6 @@ struct ciff_numbers {
 };
 
 
-void                    usage(void);
-
 static int              _verify_magic(FILE *);
 static int              _verify_numbers(struct ciff_numbers *);
 static struct ciff *    _parse_header(struct ciff *, FILE *);
