@@ -5,6 +5,7 @@ MAN1            = ciff.1
 MAN3            = ciff.3
 
 SRCS            = ciff.c cli.c
+HDRS            = ciff.h
 OBJS            = ${SRCS:.c=.o}
 LIBS            = -ljpeg
 
@@ -17,7 +18,6 @@ CFLAGS         += -Wsign-compare -Wcast-qual
 
 LDFLAGS        += ${LIBS}
 
-MANPREFIX      ?= /usr/local/man
 PREFIX         ?= /usr/local
 
 .ifdef DEBUG
@@ -35,22 +35,25 @@ ${CLI}: ${OBJS}
 
 install-lib: ${LIB}
 	install ${LIB} ${PREFIX}/lib/
+	install ${HDRS} ${PREFIX}/include/
 
 install-cli: ${CLI}
 	install ${CLI} ${PREFIX}/bin/
 
 install-man: ${MAN}
-	install -m 0644 ${MAN1} ${MANPREFIX}/man1/
-	install -m 0644 ${MAN3} ${MANPREFIX}/man3/
+	install -m 0644 ${MAN1} ${PREFIX}/man/man1/
+	install -m 0644 ${MAN3} ${PREFIX}/man/man3/
 
 deinstall-lib:
 	rm -f ${PREFIX}/lib/${LIB}
+	@sh -xc \
+	    'for h in ${HDRS}; do rm -f "${PREFIX}/include/$$h"; done'
 
 deinstall-cli:
 	rm -f ${PREFIX}/bin/${CLI}
 
 deinstall-man:
-	rm -f ${MANPREFIX}/man1/${MAN1} ${MANPREFIX}/man3/${MAN3}
+	rm -f ${PREFIX}/man/man1/${MAN1} ${PREFIX}/man/man3/${MAN3}
 
 install: install-lib install-cli install-man
 
