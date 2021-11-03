@@ -17,6 +17,7 @@ CFLAGS         += -Wsign-compare -Wcast-qual
 
 LDFLAGS        += ${LIBS}
 
+MANPREFIX      ?= /usr/local/man
 PREFIX         ?= /usr/local
 
 ifdef DEBUG
