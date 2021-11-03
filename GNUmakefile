@@ -1,6 +1,9 @@
 LIB             = libciff.a
 CLI             = ciff
 
+MAN1            = ciff.1
+MAN3            = ciff.3
+
 SRCS            = ciff.c cli.c
 OBJS            = ${SRCS:.c=.o}
 LIBS            = -ljpeg
@@ -29,28 +32,34 @@ ${LIB}: ${OBJS}
 ${CLI}: ${OBJS}
 	${CC} -o ${CLI} ${CFLAGS} ${LDFLAGS} ${OBJS}
 
-.PHONY: install-lib
 install-lib: ${LIB}
 	install ${LIB} ${PREFIX}/lib/
 
-.PHONY: install-cli
 install-cli: ${CLI}
 	install ${CLI} ${PREFIX}/bin/
 
-.PHONY: deinstall-lib
+install-man: ${MAN}
+	install -m 0644 ${MAN1} ${MANPREFIX}/man1/
+	install -m 0644 ${MAN3} ${MANPREFIX}/man3/
+
 deinstall-lib:
 	rm -f ${PREFIX}/lib/${LIB}
 
-.PHONY: deinstall-cli
 deinstall-cli:
 	rm -f ${PREFIX}/bin/${CLI}
 
-.PHONY: install
-install: install-lib install-cli
+deinstall-man:
+	rm -f ${MANPREFIX}/man1/${MAN1} ${MANPREFIX}/man3/${MAN3}
 
-.PHONY: deinstall
-deinstall: deinstall-lib deinstall-cli
+install: install-lib install-cli install-man
 
-.PHONY: clean
+deinstall: deinstall-lib deinstall-cli deinstall-man
+
 clean:
 	rm -f ${LIB} ${CLI} ${OBJS}
+
+.PHONY: clean
+.PHONY: install deinstall
+.PHONY: install-lib deinstall-lib
+.PHONY: install-cli deinstall-cli
+.PHONY: install-man deinstall-man
