@@ -1,0 +1,62 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use 5.32.0;
+
+use File::Temp qw(tempfile);
+use Getopt::Long qw(GetOptions);
+use Image::Magick;
+
+use Cwd qw(abs_path);
+use File::Basename qw(dirname);
+use lib dirname(abs_path($0)); # add ./ to @INC
+
+use TestUtil qw(status);
+
+
+# parse arguments
+my $verb = 0;
+GetOptions('verbose' => \$verb);
+
+# set ciff binary
+my $ciff = $ENV{CIFF} || '../ciff';
+
+# get temoporary file
+(undef, my $tmpin) = tempfile();
+(undef, my $tmpout) = tempfile();
+
+# trap SIGINT to remove the temporary file
+$SIG{INT} = sub { unlink $tmpin, $tmpout };
+
+# expected values
+my %exp = (
+    width       => 800,
+    height      => 600,
+    contentsize => 3 * 800 * 600,
+    cap         => 'redsquare',
+    tags        => ['solid', 'red', 'colour'],
+    colours     => 1,
+    mime        => 'image/jpeg',
+);
+
+# actual values
+my $tagargs = '-t ' . join ' -t ', @{$exp{tags}};
+system("./gentest -c $exp{cap} $tagargs -o $tmpin"
+  . " red $exp{width} $exp{height}")
+  == 0 or die "gentest script returned with $?";
+system("$ciff -o $tmpout <$tmpin")
+  == 0 or die "ciff binary returned with $?";
+my %act;
+my $img = Image::Magick->new;
+$img->Read($tmpout) == 1 or die "Failed to read JPEG image";
+($act{width}, $act{height}) = $img->Get(qw(width height));
+$act{contentsize} = 3 * $act{width} * $act{height};
+($act{colours}, $act{mime}) = $img->Get(qw(colors mime));
+
+# compare
+for my $key (qw(width height contentsize colours)) {
+    status($key, $exp{$key}, $act{$key}, $exp{$key} == $act{$key},
+      $verb);
+}
+status('mime', $exp{mime}, $act{mime}, $exp{mime} eq $act{mime}, $verb);

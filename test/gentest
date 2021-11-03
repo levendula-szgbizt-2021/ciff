@@ -2,9 +2,9 @@
 
 use strict;
 use warnings;
-use Getopt::Long 'HelpMessage';
-use feature 'switch';
-no warnings 'experimental::smartmatch';
+use Getopt::Long qw(HelpMessage GetOptions);
+use feature qw(switch);
+no warnings qw(experimental::smartmatch);
 use Data::Dumper;
 
 sub usage;

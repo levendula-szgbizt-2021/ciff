@@ -4,29 +4,43 @@ use strict;
 use warnings;
 use 5.32.0;
 
-use File::Temp 'tempfile';
-use Term::ANSIColor;
+use File::Temp qw(tempfile);
+use Getopt::Long qw(GetOptions);
+
+use Cwd qw(abs_path);
+use File::Basename qw(dirname);
+use lib dirname(abs_path($0)); # add ./ to @INC
+
+use TestUtil qw(status);
 
 
-my $ciff = $ENV{ciff};
-$ciff ||= '../ciff';
+# parse arguments
+my $verb = 0;
+GetOptions('verbose' => \$verb);
 
+# set ciff binary
+my $ciff = $ENV{CIFF} || '../ciff';
+
+# get temoporary file
 (my $fh, my $tmp) = tempfile();
 
+# trap SIGINT to remove the temporary file
 $SIG{INT} = sub { unlink $tmp };
 
+# expected results
 my %exp = (
     width       => 1024,
     height      => 768,
     contentsize => 3 * 1024 * 768,
-    cap     => 'redsquare',
-    tags        => ['hu', 'flag'],
+    cap         => 'redsquare',
+    tags        => [qw(solid red colour)],
 );
 
+# actual results
 my $tagargs = '-t ' . join ' -t ', @{$exp{tags}};
-system("./gentest -c $exp{cap} $tagargs -o $tmp huflag $exp{width} $exp{height}")
+system("./gentest -c $exp{cap} $tagargs -o $tmp"
+  . " red $exp{width} $exp{height}")
   == 0 or die "gentest script returned with $?";
-
 my $result = `$ciff -v <$tmp 2>&1`;
 my %act;
 ($act{contentsize}, $act{width}, $act{height}, $act{cap}, $act{tags})
@@ -35,17 +49,11 @@ $act{tags} =~ s/\]\s*\[/,/g;
 $act{tags} =~ s/[\[\]]//g;
 $act{tags} = [split ',', $act{tags}];
 
-sub status {
-    (my $field, my $exp, my $act, my $ok) = @_;
-    print "$field ";
-    print(($ok) ? colored("OK", 'green') : colored("FAIL", 'red'), "\n");
-    if (not $ok) {
-        print colored("expected '$exp', got '$act'", 'red'), "\n";
-    }
+# compare
+for my $key (qw(width height contentsize)) {
+    status($key, $exp{$key}, $act{$key}, $exp{$key} == $act{$key},
+      $verb);
 }
-
-for my $key ('width', 'height', 'contentsize') {
-    status($key, $exp{$key}, $act{$key}, $exp{$key} == $act{$key});
-}
-status('cap', $exp{cap}, $act{cap}, $exp{cap} eq $act{cap});
-status('tags', $exp{tags}, $act{tags}, @{$exp{tags}} == @{$act{tags}});
+status('cap', $exp{cap}, $act{cap}, $exp{cap} eq $act{cap}, $verb);
+status('tags', $exp{tags}, $act{tags}, @{$exp{tags}} == @{$act{tags}},
+  $verb);
