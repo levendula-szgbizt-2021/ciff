@@ -31,7 +31,7 @@ ${LIB}: ${OBJS}
 	${AR} rcs ${LIB} ciff.o
 
 ${CLI}: ${OBJS}
-	${CC} -o ${CLI} ${CFLAGS} ${LDFLAGS} ${OBJS}
+	${CC} -o ${CLI} ${CFLAGS} ${OBJS} ${LDFLAGS}
 
 install-lib: ${LIB}
 	install ${LIB} ${PREFIX}/lib/

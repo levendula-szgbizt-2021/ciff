@@ -5,13 +5,15 @@
 
 #include "ciff.h"
 
+char const     *progname;
+
 void    usage(void);
 
-__dead void
+void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: %s [-dhv] [-o output]\n",
-	    getprogname());
+	    progname);
 	exit(1);
 }
 
@@ -21,6 +23,8 @@ main(int argc, char **argv)
 	FILE           *out;
 	int             dflag, vflag, c;
 	struct ciff    *ciff;
+
+	progname = argv[0];
 
 	dflag = 0, vflag = 0;
 	out = stdout;

@@ -121,7 +121,7 @@ _parse_header(struct ciff *dst, FILE *stream)
 		warn("%s: malloc", __func__);
 		return NULL;
 	}
-	(void)strlcpy(dst->ciff_cap, buf, i+1);
+	(void)strncpy(dst->ciff_cap, buf, i+1);
 
 
 	/* allocate one more slot for NULL termination */
@@ -148,7 +148,7 @@ _parse_header(struct ciff *dst, FILE *stream)
 			warn("%s: malloc", __func__);
 			return NULL;
 		}
-		(void)strlcpy(tags[j], tbuf, len);
+		(void)strncpy(tags[j], tbuf, len);
 	}
 	if (rem < 0) {
 		warnx("%s: overlong tags", __func__);
