@@ -31,7 +31,6 @@ $SIG{INT} = sub { unlink $tmp };
 my %exp = (
     width       => 1024,
     height      => 768,
-    contentsize => 3 * 1024 * 768,
     cap         => 'redsquare',
     tags        => [qw(solid red colour)],
 );
@@ -43,14 +42,14 @@ system("./gentest -c $exp{cap} $tagargs -o $tmp"
   == 0 or die "gentest script returned with $?";
 my $result = `$ciff -v <$tmp 2>&1`;
 my %act;
-($act{contentsize}, $act{width}, $act{height}, $act{cap}, $act{tags})
-= ($result =~ /content size:\s*(\d+).*width:\s*(\d+).*height:\s*(\d+).*caption:\s*(\w+).*tags:\s*((\[\w+\]\s*)+)/is);
+($act{width}, $act{height}, $act{cap}, $act{tags})
+= ($result =~ /width:\s*(\d+).*height:\s*(\d+).*caption:\s*(\w+).*tags:\s*((\[\w+\]\s*)+)/is);
 $act{tags} =~ s/\]\s*\[/,/g;
 $act{tags} =~ s/[\[\]]//g;
 $act{tags} = [split ',', $act{tags}];
 
 # compare
-for my $key (qw(width height contentsize)) {
+for my $key (qw(width height)) {
     status($key, $exp{$key}, $act{$key}, $exp{$key} == $act{$key},
       $verb);
 }

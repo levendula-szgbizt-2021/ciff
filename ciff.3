@@ -14,7 +14,7 @@
 .\" OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 .\" TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 .\" PERFORMANCE OF THIS SOFTWARE.
-.Dd November 02, 2021
+.Dd November 09, 2021
 .\" ----------------------------------------------------------------
 .Dt CIFF 3
 .Os
@@ -30,13 +30,14 @@
 .Fd struct ciff;
 .Pp
 .Ft struct ciff *
-.Fn ciff_parse "struct ciff *dst" "FILE *stream"
+.Fn ciff_parse "struct ciff *dst" "char *in"
 .Ft void
-.Fn ciff_dump_header "struct ciff *ciff" "FILE *stream"
+.Fn ciff_dump_header "FILE *stream" "struct ciff *ciff"
 .Ft void
-.Fn ciff_dump_pixels "struct ciff *ciff" "FILE *stream"
-.Ft void
-.Fn ciff_jpeg_compress "struct ciff *ciff" "FILE *out"
+.Fn ciff_dump_pixels "FILE *stream" "struct ciff *ciff"
+.Ft unsigned char **
+.Fn ciff_jpeg_compress "unsigned char **dst" "unsigned long *len" \
+    "struct ciff *ciff"
 .\" ----------------------------------------------------------------
 .Sh DESCRIPTION
 The
@@ -48,18 +49,10 @@ files.
 The main structure that describes the data of a ciff file is
 .Vt struct ciff
 which contains the following members:
-.Bl -hang -offset indent
-.It Fa "long ciff_hsize"
-the header size of the ciff
-.It Fa "long ciff_csize"
-this content size of the ciff; always
-3 x
-.Fa width
-x
-.Fa height
-.It Fa "long ciff_width"
+.Bl -ohang -offset indent
+.It Fa "unsigned long long ciff_width"
 the width of the image in pixels
-.It Fa "long ciff_height"
+.It Fa "unsigned long long ciff_height"
 the height of the image in pixels
 .It Fa "char *ciff_cap"
 the image caption (NUL-terminated string)
@@ -72,7 +65,7 @@ image pixels (row by row, top to bottom)
 Each pixel is stored in a structure
 .Vt "struct pixel",
 which has the following three fields:
-.Bl -hang -offset indent
+.Bl -ohang -offset indent
 .It Fa "unsigned_char px_r"
 the red colour value (0..255)
 .It Fa "unsigned_char px_g"
@@ -81,25 +74,41 @@ the green colour value (0..255)
 the blue colour value (0..255)
 .El
 .Pp
-You can parse a new ciff image from an open stream by
+You can parse a new ciff image from data pointed to by a
+.Fa char *
+using
 .Fn "ciff_parse",
-but the destination must be pre-allocated by the caller.
-It is also the responsibility of the caller to later
-.Fn free
-the allocated memory.
+but the destination must be pre-allocated and
+.Fn "free"
+\'d by the caller.
 .Pp
 .Fn ciff_dump_header
 and
 .Fn ciff_dump_pixels
-are mostly reserved for debugging purposes: they dump the header and the
-body (contents) of the ciff, respectively, to the given stream.
+are indented for debugging purposes: they dump the header and the body
+(contents) of the ciff, respectively, to the given stream.
 .Pp
 To get an image which can be displayed in conventional viewers, use
-.Fn ciff_jpeg_compress
-, which takes a pointer to a
-.Vt "struct ciff"
-as an argument and a stream, to where it writes a JPEG-compressed image
-that is equivalent to the ciff's contents.
+.Fn "ciff_jpeg_compress".
+The value of
+.Fa dst
+is ignored, and sufficient memory is allocated to the memory pointed to
+by it. It is the responsibility of the caller to later
+.Fn free
+this memory.
+The value of
+.Fa dst
+is returned on success, or
+.Fa "NULL",
+in case of a failure.
+After a successful call, the data pointed to by
+.Fa *dst
+is a JPEG-compressed image that is equivalent to the ciff's contents and
+.Fa len
+contains the length of the image data.
+See
+.Pa cli.c
+for an example on how this function can be used.
 .\" ----------------------------------------------------------------
 .Sh SEE ALSO
 .Xr ciff 1

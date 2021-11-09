@@ -5,26 +5,82 @@
 
 #include "ciff.h"
 
-char const     *progname;
+#define CHUNKSIZ        4096
 
-void    usage(void);
+static void     _usage(void);
+static void     _slurp(char **, size_t *, FILE *);
 
-void
-usage(void)
+static char const      *_progname;
+
+
+static void
+_usage(void)
 {
 	(void)fprintf(stderr, "usage: %s [-dhv] [-o output]\n",
-	    progname);
+	    _progname);
 	exit(1);
+}
+
+static void
+_slurp(char **dst, size_t *len, FILE *stream)
+{
+	size_t  n, size;
+	char   *tmp;
+
+	*len = size = 0;
+	*dst = NULL;
+	while (1) {
+		/* Grow allocated memory as needed */
+		if (*len + CHUNKSIZ + 1 > size) {
+			size = *len + CHUNKSIZ + 1;
+
+			/* overflow check */
+			if (size <= *len) {
+				free(*dst);
+				errx(1, "%s: overflow", __func__);
+			}
+
+			/* reallocation */
+			if ((tmp = realloc(*dst, size)) == NULL) {
+				free(*dst);
+				err(1, "%s: realloc", __func__);
+			}
+			*dst = tmp;
+		}
+
+		/* Read a chunk */
+		n = fread(*dst + *len, 1, CHUNKSIZ, stream);
+		if (n == 0)
+			break;
+
+		*len += n;
+	}
+
+	if (ferror(stream)) {
+		free(*dst);
+		err(1, "%s: ferror", __func__);
+	}
+}
+
+static void
+_dump(FILE *target, char *data, unsigned long len)
+{
+	if (fwrite(data, 1, len, target) < len)
+		err(1, "%s: fwrite", __func__);
 }
 
 int
 main(int argc, char **argv)
 {
-	FILE           *out;
+	size_t          len;
+	unsigned long   outlen;
 	int             dflag, vflag, c;
+	FILE           *out;
 	struct ciff    *ciff;
+	unsigned char  *output;
+	char           *input;
 
-	progname = argv[0];
+	_progname = argv[0];
 
 	dflag = 0, vflag = 0;
 	out = stdout;
@@ -34,7 +90,7 @@ main(int argc, char **argv)
 			dflag = 1;
 			break;
 		case 'h':
-			usage();
+			_usage();
 			break;
 		case 'v':
 			vflag = 1;
@@ -44,7 +100,7 @@ main(int argc, char **argv)
 				err(1, "%s: %s", __func__, optarg);
 			break;
 		default:
-			usage();
+			_usage();
 		}
 	}
 	argc -= optind, argv += optind;
@@ -52,15 +108,20 @@ main(int argc, char **argv)
 	if ((ciff = malloc(sizeof (struct ciff))) == NULL)
 		err(1, "could not allocate memory");
 
-	if (ciff_parse(ciff, stdin) == NULL)
+	_slurp(&input, &len, stdin);
+	if (ciff_parse(ciff, input) == NULL)
 		errx(1, "parse failure");
 	if (vflag)
-		ciff_dump_header(ciff, stderr);
+		ciff_dump_header(stderr, ciff);
 	if (dflag)
-		ciff_dump_pixels(ciff, stderr);
+		ciff_dump_pixels(stderr, ciff);
 
-	ciff_jpeg_compress(ciff, out);
+	output = NULL;
+	if (ciff_jpeg_compress(&output, &outlen, ciff) == NULL)
+		errx(1, "failed to compress to JPEG");
+	_dump(out, output, outlen);
 
 	free(ciff);
+	free(output);
 	return 0;
 }
