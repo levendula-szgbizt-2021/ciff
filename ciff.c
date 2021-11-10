@@ -37,6 +37,7 @@ void                    ciff_dump_pixels(FILE *, struct ciff *);
 unsigned char **        ciff_jpeg_compress(unsigned char **,
 			    unsigned long *, struct ciff *);
 char *                  ciff_strerror(enum ciff_error);
+void                    ciff_destroy(struct ciff *);
 
 enum ciff_error                 cifferrno;
 
@@ -360,4 +361,17 @@ ciff_strerror(enum ciff_error err)
 	default:
 		return "Unknown error";
 	}
+}
+
+void
+ciff_destroy(struct ciff *ciff)
+{
+	char  **p;
+
+	free(ciff->ciff_cap);
+	for (p = ciff->ciff_tags; *p != NULL; ++p)
+		free(*p);
+	free(ciff->ciff_tags);
+	free(ciff->ciff_content);
+	free(ciff);
 }

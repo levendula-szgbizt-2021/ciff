@@ -43,6 +43,8 @@
     "struct ciff *ciff"
 .Ft char *
 .Fn ciff_strerror "enum ciff_error err"
+.Ft void
+.Fn ciff_destroy "struct ciff *ciff"
 .\" ----------------------------------------------------------------
 .Sh DESCRIPTION
 The
@@ -114,6 +116,12 @@ contains the length of the image data.
 See
 .Pa cli.c
 for an example on how this function can be used.
+.Pp
+Do not forget to properly destroy your
+.Fa "struct ciff"
+objects. It is recommended to use the
+.Fn ciff_destroy
+function for this purpose.
 .Pp
 Error handling in the
 .Nm

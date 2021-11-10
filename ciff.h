@@ -38,4 +38,6 @@ unsigned char **        ciff_jpeg_compress(unsigned char **,
 
 char *                  ciff_strerror(enum ciff_error);
 
+void                    ciff_destroy(struct ciff *);
+
 #endif /* CIFF_H */
