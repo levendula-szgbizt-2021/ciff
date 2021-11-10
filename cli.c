@@ -158,7 +158,7 @@ main(int argc, char **argv)
 		err(1, "could not allocate memory");
 
 	_slurp(&input, &len, in);
-	if (ciff_parse(ciff, input, len) == NULL)
+	if (ciff_parse(ciff, input, &len) == NULL)
 		_err(1, "parse failure");
 	if (vflag)
 		ciff_dump_header(stderr, ciff);

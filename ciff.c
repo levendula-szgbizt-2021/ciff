@@ -31,7 +31,7 @@ static unsigned char *  _px_flatten(unsigned char *, struct pixel *,
 static size_t           _print_separator(FILE *, char, size_t);
 
 /* ciff.h */
-struct ciff *           ciff_parse(struct ciff *, char *, size_t);
+struct ciff *           ciff_parse(struct ciff *, char *, size_t *);
 void                    ciff_dump_header(FILE *, struct ciff *);
 void                    ciff_dump_pixels(FILE *, struct ciff *);
 unsigned char **        ciff_jpeg_compress(unsigned char **,
@@ -236,11 +236,11 @@ _print_separator(FILE *stream, char ch, size_t len)
  *---------------------------------------------------------------*/
 
 struct ciff *
-ciff_parse(struct ciff *dst, char *in, size_t len)
+ciff_parse(struct ciff *dst, char *in, size_t *len)
 {
-	if (_parse_header(dst, &in, &len) == NULL)
+	if (_parse_header(dst, &in, len) == NULL)
 		return NULL;
-	if (_parse_pixels(dst, &in, &len) == NULL)
+	if (_parse_pixels(dst, &in, len) == NULL)
 		return NULL;
 	return dst;
 }
