@@ -30,7 +30,7 @@
 .Fd struct pixel;
 .Fd struct ciff;
 .Pp
-.Fd enum ciff_error cifferno;
+.Fd enum ciff_error cifferrno;
 .Pp
 .Ft struct ciff *
 .Fn ciff_parse "struct ciff *dst" "char *in"
@@ -122,14 +122,14 @@ library is implemented using an errno-like mechanism; see
 for more details on the standard errno. If any library call is
 unsuccessful, a special value (eg NULL) is returned, and the designated
 global variable
-.Fa cifferno
+.Fa cifferrno
 is set to a value describing the error. To get a textual description of
 the error, use
 .Fn "ciff_strerror",
 which is akin to the standard
 .Xr strerror 3
 function.
-.Fa cifferno
+.Fa cifferrno
 is never reset and so it is only meaningful to check its value if an
 error has been indicated by a function’s return value.
 .\" ----------------------------------------------------------------

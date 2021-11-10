@@ -83,7 +83,7 @@ _err(int eval, char const *fmt, ...)
 
 	va_start(ap, fmt);
 
-	estr = ciff_strerror(cifferno);
+	estr = ciff_strerror(cifferrno);
 	sep = ": ";
 
 	fmtlen = strlen(fmt);

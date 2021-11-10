@@ -12,7 +12,7 @@ enum ciff_error {
 	CIFF_ENOMORE    = -6,   /* no more data, ie unexpected end */
 };
 
-extern enum ciff_error          cifferno;
+extern enum ciff_error          cifferrno;
 
 struct pixel {
 	unsigned char           px_r;

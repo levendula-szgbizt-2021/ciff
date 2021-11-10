@@ -38,7 +38,7 @@ unsigned char **        ciff_jpeg_compress(unsigned char **,
 			    unsigned long *, struct ciff *);
 char *                  ciff_strerror(enum ciff_error);
 
-enum ciff_error                 cifferno;
+enum ciff_error                 cifferrno;
 
 static unsigned long long       _csiz;
 
@@ -63,7 +63,7 @@ _parse_header(struct ciff *dst, char **in, size_t *rem)
 	/* 1. Check magic */
 
 	if (!_verify_magic(*in)) {
-		cifferno = CIFF_EMAGIC;
+		cifferrno = CIFF_EMAGIC;
 		return NULL;
 	}
 	*in += MAGIC_LENGTH; *rem -= MAGIC_LENGTH;
@@ -78,7 +78,7 @@ _parse_header(struct ciff *dst, char **in, size_t *rem)
 	hrem = INT64(*in) - MAGIC_LENGTH - 8;
 	*rem -= 8;
 	if (hrem > *rem) {
-		cifferno = CIFF_ENOMORE;
+		cifferrno = CIFF_ENOMORE;
 		return NULL;
 	}
 	*in += 8;
@@ -90,7 +90,7 @@ _parse_header(struct ciff *dst, char **in, size_t *rem)
  */
 #define PARSE64(v)                                      \
     if (hrem < 8) {                                     \
-	cifferno = CIFF_ENOMORE;                        \
+	cifferrno = CIFF_ENOMORE;                        \
 	return NULL;                                    \
     }                                                   \
     v = INT64(*in);                                     \
@@ -101,7 +101,7 @@ _parse_header(struct ciff *dst, char **in, size_t *rem)
 	PARSE64(dst->ciff_height)
 
 	if (_csiz != 3 * dst->ciff_width * dst->ciff_height) {
-		cifferno = CIFF_ECSIZE;
+		cifferrno = CIFF_ECSIZE;
 		return NULL;
 	}
 
@@ -117,13 +117,13 @@ _parse_header(struct ciff *dst, char **in, size_t *rem)
 #define PARSEUNTIL(c, err)                              \
     for (p = *in; **in != (c); ++*in, --hrem) {         \
 	if (hrem == 0) {                                \
-		cifferno = err;                         \
+		cifferrno = err;                         \
 		return NULL;                            \
 	}                                               \
     }                                                   \
     len = *in - p;                                      \
     if (hrem == 0) {                                    \
-    	cifferno = err;                                 \
+    	cifferrno = err;                                 \
     	return NULL;                                    \
     }                                                   \
     ++*in; --hrem;
@@ -131,7 +131,7 @@ _parse_header(struct ciff *dst, char **in, size_t *rem)
 	PARSEUNTIL('\n', CIFF_ECAP);
 	++len;
 	if ((dst->ciff_cap = malloc(len)) == NULL) {
-		cifferno = CIFF_EERRNO;
+		cifferrno = CIFF_EERRNO;
 		return NULL;
 	}
 	(void)strncpy(dst->ciff_cap, p, len - 1);
@@ -142,18 +142,18 @@ _parse_header(struct ciff *dst, char **in, size_t *rem)
 	/* allocate one more slot for NULL termination */
 	if ((dst->ciff_tags = malloc((hrem + 1) * sizeof (char *)))
 	    == NULL) {
-		cifferno = CIFF_EERRNO;
+		cifferrno = CIFF_EERRNO;
 		return NULL;
 	}
 	for (i = 0; hrem > 0; ++i) {
 		PARSEUNTIL('\0', CIFF_ETAG);
 		if (memchr(p, '\n', len) != NULL) {
-			cifferno = CIFF_ETAG;
+			cifferrno = CIFF_ETAG;
 			return NULL;
 		}
 
 		if ((dst->ciff_tags[i] = malloc(len)) == NULL) {
-			cifferno = CIFF_EERRNO;
+			cifferrno = CIFF_EERRNO;
 			return NULL;
 		}
 		(void)strncpy(dst->ciff_tags[i], p, len);
@@ -173,12 +173,12 @@ _parse_pixels(struct ciff *ciff, char **in, size_t *rem)
 
 	if ((ciff->ciff_content = malloc(ciff->ciff_width
 	    * ciff->ciff_height * sizeof (struct pixel))) == NULL) {
-		cifferno = CIFF_EERRNO;
+		cifferrno = CIFF_EERRNO;
 		return NULL;
 	}
 
 	if (_csiz > *rem) {
-		cifferno = CIFF_ENOMORE;
+		cifferrno = CIFF_ENOMORE;
 		return NULL;
 	}
 	if (_csiz < *rem) {
@@ -218,12 +218,12 @@ _print_separator(FILE *stream, char ch, size_t len)
 
 	for (i = 0; i < len; ++i)
 		if (putc(ch, stream) == EOF) {
-			cifferno = CIFF_EERRNO;
+			cifferrno = CIFF_EERRNO;
 			return i;
 		}
 
 	if (putc('\n', stream) == EOF) {
-		cifferno = CIFF_EERRNO;
+		cifferrno = CIFF_EERRNO;
 		return i;
 	}
 
@@ -300,7 +300,7 @@ ciff_jpeg_compress(unsigned char **dst, unsigned long *len,
 	/* 0. Init vars */
 	if ((data = malloc(3 * ciff->ciff_width * ciff->ciff_height))
 	    == NULL) {
-		cifferno = CIFF_EERRNO;
+		cifferrno = CIFF_EERRNO;
 		return NULL;
 	}
 	(void)_px_flatten(data, ciff->ciff_content, ciff->ciff_width,
