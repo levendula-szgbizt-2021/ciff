@@ -28,7 +28,7 @@ struct ciff {
 	struct pixel           *ciff_content;
 };
 
-struct ciff *           ciff_parse(struct ciff *, char *);
+struct ciff *           ciff_parse(struct ciff *, char *, size_t);
 
 void                    ciff_dump_header(FILE *, struct ciff *);
 void                    ciff_dump_pixels(FILE *, struct ciff *);

@@ -24,14 +24,14 @@
 )
 
 static int              _verify_magic(char *);
-static struct ciff *    _parse_header(struct ciff *, char **);
-static struct ciff *    _parse_pixels(struct ciff *, char **);
+static struct ciff *    _parse_header(struct ciff *, char **, size_t *);
+static struct ciff *    _parse_pixels(struct ciff *, char **, size_t *);
 static unsigned char *  _px_flatten(unsigned char *, struct pixel *,
 			    unsigned long long, unsigned long long);
 static size_t           _print_separator(FILE *stream, size_t len);
 
 /* ciff.h */
-struct ciff *           ciff_parse(struct ciff *, char *);
+struct ciff *           ciff_parse(struct ciff *, char *, size_t);
 void                    ciff_dump_header(FILE *, struct ciff *);
 void                    ciff_dump_pixels(FILE *, struct ciff *);
 unsigned char **        ciff_jpeg_compress(unsigned char **,
@@ -50,9 +50,9 @@ _verify_magic(char *str)
 }
 
 static struct ciff *
-_parse_header(struct ciff *dst, char **in)
+_parse_header(struct ciff *dst, char **in, size_t *rem)
 {
-	unsigned long long      rem;
+	unsigned long long      hrem;
 	size_t                  i, len;
 	char                   *p;
 
@@ -66,7 +66,7 @@ _parse_header(struct ciff *dst, char **in)
 		cifferno = CIFF_EMAGIC;
 		return NULL;
 	}
-	*in += MAGIC_LENGTH;
+	*in += MAGIC_LENGTH; *rem -= MAGIC_LENGTH;
 
 
 	/* 2. Parse numerical values from header */
@@ -75,20 +75,26 @@ _parse_header(struct ciff *dst, char **in)
 	 * Remaining bytes: header size minus magic and header size
 	 * itself already read.
 	 */
-	rem = INT64(*in) - MAGIC_LENGTH - 8;
+	hrem = INT64(*in) - MAGIC_LENGTH - 8;
+	*rem -= 8;
+	if (hrem > *rem) {
+		cifferno = CIFF_ENOMORE;
+		return NULL;
+	}
 	*in += 8;
+	*rem -= hrem;
 
 /*
  * Parse a 64-bit integer from the input, advance input pointer by 8,
  * and decrease rem counter by 8.
  */
 #define PARSE64(v)                                      \
-    if (rem < 8) {                                      \
+    if (hrem < 8) {                                     \
 	cifferno = CIFF_ENOMORE;                        \
 	return NULL;                                    \
     }                                                   \
     v = INT64(*in);                                     \
-    *in += 8; rem -= 8;
+    *in += 8; hrem -= 8;
 
 	PARSE64(_csiz)
 	PARSE64(dst->ciff_width)
@@ -109,14 +115,18 @@ _parse_header(struct ciff *dst, char **in)
  * Set len to the length of string read.
  */
 #define PARSEUNTIL(c, err)                              \
-    for (p = *in; **in != (c); ++*in, --rem) {          \
-	if (rem == 0) {                                 \
+    for (p = *in; **in != (c); ++*in, --hrem) {         \
+	if (hrem == 0) {                                \
 		cifferno = err;                         \
 		return NULL;                            \
 	}                                               \
     }                                                   \
     len = *in - p;                                      \
-    ++*in; --rem;
+    if (hrem == 0) {                                    \
+    	cifferno = err;                                 \
+    	return NULL;                                    \
+    }                                                   \
+    ++*in; --hrem;
 
 	PARSEUNTIL('\n', CIFF_ECAP);
 	++len;
@@ -130,12 +140,12 @@ _parse_header(struct ciff *dst, char **in)
 	/* 4. Parse tags */
 
 	/* allocate one more slot for NULL termination */
-	if ((dst->ciff_tags = malloc((rem + 1) * sizeof (char *)))
+	if ((dst->ciff_tags = malloc((hrem + 1) * sizeof (char *)))
 	    == NULL) {
 		cifferno = CIFF_EERRNO;
 		return NULL;
 	}
-	for (i = 0; rem > 0; ++i) {
+	for (i = 0; hrem > 0; ++i) {
 		PARSEUNTIL('\0', CIFF_ETAG);
 		if (memchr(p, '\n', len) != NULL) {
 			cifferno = CIFF_ETAG;
@@ -157,9 +167,8 @@ _parse_header(struct ciff *dst, char **in)
 }
 
 static struct ciff *
-_parse_pixels(struct ciff *ciff, char **in)
+_parse_pixels(struct ciff *ciff, char **in, size_t *rem)
 {
-	size_t          rem;
 	struct pixel   *p;
 
 	if ((ciff->ciff_content = malloc(ciff->ciff_width
@@ -168,9 +177,16 @@ _parse_pixels(struct ciff *ciff, char **in)
 		return NULL;
 	}
 
-	rem = _csiz;
+	if (_csiz > *rem) {
+		cifferno = CIFF_ENOMORE;
+		return NULL;
+	}
+	if (_csiz < *rem) {
+		/* TODO trailing data is simply ignored */
+	}
+
 	p = ciff->ciff_content;
-	for (; rem > 0; ++p, rem -= 3) {
+	for (; *rem >= 3; ++p, *rem -= 3) {
 		/* (unsigned) char is guaranteed to by 1 byte */
 		(void)memcpy(&p->px_r, (*in)++, 1);
 		(void)memcpy(&p->px_g, (*in)++, 1);
@@ -220,11 +236,11 @@ _print_separator(FILE *stream, size_t len)
  *---------------------------------------------------------------*/
 
 struct ciff *
-ciff_parse(struct ciff *dst, char *in)
+ciff_parse(struct ciff *dst, char *in, size_t len)
 {
-	if (_parse_header(dst, &in) == NULL)
+	if (_parse_header(dst, &in, &len) == NULL)
 		return NULL;
-	if (_parse_pixels(dst, &in) == NULL)
+	if (_parse_pixels(dst, &in, &len) == NULL)
 		return NULL;
 	return dst;
 }
@@ -343,6 +359,8 @@ ciff_strerror(enum ciff_error err)
 		return "Invalid content size value";
 	case CIFF_ECAP:
 		return "Caption too long";
+	case CIFF_ETAG:
+		return "Tag contains newline or is too long";
 	case CIFF_ENOMORE:
 		return "Unexpected end of data";
 	default:

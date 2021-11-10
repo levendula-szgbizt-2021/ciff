@@ -1,0 +1,94 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Getopt::Long qw(HelpMessage GetOptions);
+use feature qw(switch);
+no warnings qw(experimental::smartmatch);
+
+sub usage;
+
+my $out;
+my $shorter = 0;
+GetOptions(
+    'output=s'  => \$out,
+    'shorter'   => \$shorter,
+    'help'      => sub { HelpMessage(0) },
+) or HelpMessage(1);
+
+HelpMessage(1) unless (@ARGV == 1);
+my $type = $ARGV[0];
+
+
+my $magic = 'CIFF';
+my $width = 200;
+my $height = 200;
+my $size = 3 * $width * $height;
+my @tags = (qw(tag1 tag2 tag3));
+my $tagstr = join("\0", @tags) . "\0";
+
+my $caption = "test caption\n";
+my $hdrsize = 4 + 4 * 8 + (length $caption) + (length $tagstr);
+#             ^     ^
+#           magic   |
+#                8 byte nums
+
+my @pixels = ((255, 0, 0) x $width) x $height;
+
+for ($type) {
+    when ('magic') {
+        $magic = 'FIFF';
+    }
+    when ('hsize') {
+        $hdrsize = ($shorter) ? $hdrsize - 1 : $hdrsize + 1;
+    }
+    when ('csize') {
+        $size = ($shorter) ? $size - 1 : $size + 1;
+    }
+    when ('cap') {
+        $caption = "no newline caption";
+    }
+    when ('tags') {
+        $tagstr = "tag1\0tag2\n\0tag3";
+    }
+    default { die "Unknown type $type" }
+}
+
+my $hdr = pack('A4Q4', $magic, $hdrsize, $size, $width, $height)
+  . $caption
+  . $tagstr;
+
+my $data = pack("C*", @pixels);
+
+my $fh;
+if ($out) {
+    open($fh, '>', $out) or die "Failed to open output file";
+} else {
+    open($fh, '>&', \*STDOUT) or die "Failed to open stdout";
+}
+
+print $fh $hdr;
+print $fh $data;
+
+
+=pod
+
+=head1 NAME
+
+genbadtest - generate invalid CIFF test images
+
+=head1 SYNOPSIS
+
+gentest [-o output] [-s] errtype
+
+  --shorter, -s In case of {hsize, csize}, generate a shorter value
+                rather than a longer (the latter is the default)
+  --output,-o   Output file (default is stdout)
+
+  errtype       One of {magic, hsize, csize, cap, tags} (mandatory)
+
+=head1 VERSION
+
+0.01
+
+=cut

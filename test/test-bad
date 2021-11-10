@@ -1,0 +1,66 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use 5.32.0;
+
+use File::Temp qw(tempfile);
+use Getopt::Long qw(GetOptions);
+
+use Cwd qw(abs_path);
+use File::Basename qw(dirname);
+use lib dirname(abs_path($0)); # add ./ to @INC
+
+use TestUtil qw(status);
+
+
+# parse arguments
+my $verb = 0;
+GetOptions('verbose' => \$verb);
+
+# set ciff binary
+my $ciff = $ENV{CIFF} || '../ciff';
+
+# get temoporary file
+(my $fh, my $tmp) = tempfile();
+
+# trap SIGINT to remove the temporary file
+$SIG{INT} = sub { unlink $tmp };
+
+my $result;
+my %ok;
+my $failstr = 'parse failure';
+
+# 1. magic
+system("./genbadtest -o $tmp magic")
+  == 0 or die "gentest script returned with $?";
+$result = `$ciff -v <$tmp 2>&1`;
+$ok{magic} = index($result, $failstr) != -1;
+
+# 2. hsize
+system("./genbadtest -o $tmp hsize")
+  == 0 or die "gentest script returned with $?";
+$result = `$ciff -v <$tmp 2>&1`;
+$ok{hsize} = index($result, $failstr) != -1;
+
+# 3. csize
+system("./genbadtest -o $tmp csize")
+  == 0 or die "gentest script returned with $?";
+$result = `$ciff -v <$tmp 2>&1`;
+$ok{csize} = index($result, $failstr) != -1;
+
+# 4. cap
+system("./genbadtest -o $tmp cap")
+  == 0 or die "gentest script returned with $?";
+$result = `$ciff -v <$tmp 2>&1`;
+$ok{cap} = index($result, $failstr) != -1;
+
+# 5. tags
+system("./genbadtest -o $tmp tags")
+  == 0 or die "gentest script returned with $?";
+$result = `$ciff -v <$tmp 2>&1`;
+$ok{tags} = index($result, $failstr) != -1;
+
+for my $key (qw(magic csize hsize cap tags)) {
+    status($key, 1, $ok{$key}, $ok{$key} == 1, $verb);
+}

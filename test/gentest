@@ -85,7 +85,7 @@ gentest - generate simple CIFF test images
 
 =head1 SYNOPSIS
 
-gentest [-c caption] [-t tag] type width height
+gentest [-o output] [-c caption] [-t tag] type width height
 
   --caption,-c  Image caption (default is 'no caption')
   --tag,-t      Image tag (this option can be specified multiple times)
