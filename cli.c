@@ -21,7 +21,7 @@ static char const      *_progname;
 static void
 _usage(void)
 {
-	(void)fprintf(stderr, "usage: %s [-dhv] [-o output]\n",
+	(void)fprintf(stderr, "usage: %s [-dhv] [-o output] [input]\n",
 	    _progname);
 	exit(1);
 }
@@ -109,7 +109,7 @@ main(int argc, char **argv)
 	size_t          len;
 	unsigned long   outlen;
 	int             dflag, vflag, c;
-	FILE           *out;
+	FILE           *in, *out;
 	struct ciff    *ciff;
 	unsigned char  *output;
 	char           *input;
@@ -117,6 +117,7 @@ main(int argc, char **argv)
 	_progname = argv[0];
 
 	dflag = 0, vflag = 0;
+	in = stdin;
 	out = stdout;
 	while ((c = getopt(argc, argv, "dhvo:")) != -1) {
 		switch (c) {
@@ -139,12 +140,26 @@ main(int argc, char **argv)
 	}
 	argc -= optind, argv += optind;
 
+	switch (argc) {
+	case 0:         /* everything OK, input will be stdin */
+		break;
+	case 1:         /* explicit input file given */
+		if (strcmp(argv[0], "-") == 0)
+			break;
+		if ((in = fopen(argv[0], "rb")) == NULL)
+			err(1, "%s: %s", __func__, argv[0]);
+		break;
+	default:
+		_usage();
+	}
+
+
 	if ((ciff = malloc(sizeof (struct ciff))) == NULL)
 		err(1, "could not allocate memory");
 
-	_slurp(&input, &len, stdin);
+	_slurp(&input, &len, in);
 	if (ciff_parse(ciff, input) == NULL)
-		errx(1, "parse failure");
+		_err(1, "parse failure");
 	if (vflag)
 		ciff_dump_header(stderr, ciff);
 	if (dflag)
@@ -152,7 +167,7 @@ main(int argc, char **argv)
 
 	output = NULL;
 	if (ciff_jpeg_compress(&output, &outlen, ciff) == NULL)
-		errx(1, "failed to compress to JPEG");
+		_err(1, "JPEG-compression failure");
 	_dump(out, (char *)output, outlen);
 
 	free(ciff);
