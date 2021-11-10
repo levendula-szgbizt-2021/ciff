@@ -28,7 +28,7 @@ static struct ciff *    _parse_header(struct ciff *, char **, size_t *);
 static struct ciff *    _parse_pixels(struct ciff *, char **, size_t *);
 static unsigned char *  _px_flatten(unsigned char *, struct pixel *,
 			    unsigned long long, unsigned long long);
-static size_t           _print_separator(FILE *stream, size_t len);
+static size_t           _print_separator(FILE *, char, size_t);
 
 /* ciff.h */
 struct ciff *           ciff_parse(struct ciff *, char *, size_t);
@@ -212,12 +212,12 @@ _px_flatten(unsigned char *dst, struct pixel *pxs,
 }
 
 static size_t
-_print_separator(FILE *stream, size_t len)
+_print_separator(FILE *stream, char ch, size_t len)
 {
 	size_t  i;
 
 	for (i = 0; i < len; ++i)
-		if (putc('-', stream) == EOF) {
+		if (putc(ch, stream) == EOF) {
 			cifferno = CIFF_EERRNO;
 			return i;
 		}
@@ -250,10 +250,7 @@ ciff_dump_header(FILE *stream, struct ciff *ciff)
 {
 	char  **tag;
 
-	if (_print_separator(stream, 64) != 65)
-		(void)fprintf(stream,
-		    "failure while printing separator line: %s",
-		    ciff_strerror(cifferno));
+	(void)_print_separator(stream, '-', 64);
 
 	(void)fprintf(stream, "Image width:\t%llu\n",
 	    ciff->ciff_width);
@@ -267,10 +264,7 @@ ciff_dump_header(FILE *stream, struct ciff *ciff)
 		(void)fprintf(stream, "[%s]", *tag);
 	(void)fprintf(stream, "\n");
 
-	if (_print_separator(stream, 64) != 65)
-		(void)fprintf(stream,
-		    "failure while printing separator line: %s",
-		    ciff_strerror(cifferno));
+	(void)_print_separator(stream, '-', 64);
 }
 
 void
@@ -279,17 +273,17 @@ ciff_dump_pixels(FILE *stream, struct ciff *ciff)
 	size_t  i, j, k;
 
 	for (i = 0; i < ciff->ciff_height; ++i) {
-		(void)fprintf(stream, "[");
+		(void)fprintf(stream, "\n");
+		(void)_print_separator(stream, '=', 64);
+		(void)fprintf(stream, "\t\tROW #%zu\n", i + 1);
+		(void)_print_separator(stream, '=', 64);
 		for (j = 0; j < ciff->ciff_width; ++j) {
 			k = i * ciff->ciff_width + j;
-			(void)fprintf(stream, "(%hhu, %hhu, %hhu)",
+			(void)fprintf(stream, "(%hhu, %hhu, %hhu)\n",
 			    ciff->ciff_content[k].px_r,
 			    ciff->ciff_content[k].px_g,
 			    ciff->ciff_content[k].px_b);
-			if (j != ciff->ciff_width - 1)
-				(void)fprintf(stream, " ");
 		}
-		(void)fprintf(stream, "]\n");
 	}
 }
 
