@@ -78,7 +78,7 @@ static void
 _err(int eval, char const *fmt, ...)
 {
 	va_list ap;
-	size_t  fmtlen, seplen, estrlen;
+	size_t  newfmtlen, fmtlen, seplen, estrlen;
 	char   *estr, *sep, *newfmt;
 
 	va_start(ap, fmt);
@@ -90,12 +90,13 @@ _err(int eval, char const *fmt, ...)
 	seplen = strlen(sep);
 	estrlen = strlen(estr);
 
-	if ((newfmt = malloc(fmtlen + seplen + estrlen + 1)) == NULL)
+	newfmtlen = fmtlen + seplen + estrlen;
+	if ((newfmt = malloc(newfmtlen + 1)) == NULL)
 		err(1, "malloc");
-	(void)strncpy(newfmt, fmt, fmtlen);
-	newfmt[fmtlen] = '\0';
-	(void)strncat(newfmt, sep, seplen);
-	(void)strncat(newfmt, estr, estrlen);
+	(void)strncpy(newfmt, fmt, newfmtlen);
+	newfmt[newfmtlen] = '\0';
+	(void)strncat(newfmt, sep, newfmtlen - fmtlen);
+	(void)strncat(newfmt, estr, newfmtlen - fmtlen - seplen);
 
 	verrx(eval, newfmt, ap);
 
