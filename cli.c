@@ -116,9 +116,6 @@ main(int argc, char **argv)
 
 	_progname = argv[0];
 
-	cifferno = CIFF_ECAP;
-	_err(1, "ciff error");
-
 	dflag = 0, vflag = 0;
 	out = stdout;
 	while ((c = getopt(argc, argv, "dhvo:")) != -1) {
