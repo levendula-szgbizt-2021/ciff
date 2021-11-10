@@ -1,4 +1,4 @@
-#include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +28,7 @@ static struct ciff *    _parse_header(struct ciff *, char **);
 static struct ciff *    _parse_pixels(struct ciff *, char **);
 static unsigned char *  _px_flatten(unsigned char *, struct pixel *,
 			    unsigned long long, unsigned long long);
-static void             _print_separator(FILE *stream, size_t len);
+static size_t           _print_separator(FILE *stream, size_t len);
 
 /* ciff.h */
 struct ciff *           ciff_parse(struct ciff *, char *);
@@ -36,6 +36,9 @@ void                    ciff_dump_header(FILE *, struct ciff *);
 void                    ciff_dump_pixels(FILE *, struct ciff *);
 unsigned char **        ciff_jpeg_compress(unsigned char **,
 			    unsigned long *, struct ciff *);
+char *                  ciff_strerror(enum ciff_error);
+
+enum ciff_error                 cifferno;
 
 static unsigned long long       _csiz;
 
@@ -60,7 +63,7 @@ _parse_header(struct ciff *dst, char **in)
 	/* 1. Check magic */
 
 	if (!_verify_magic(*in)) {
-		warnx("%s: invalid magic", __func__);
+		cifferno = CIFF_EMAGIC;
 		return NULL;
 	}
 	*in += MAGIC_LENGTH;
@@ -81,19 +84,18 @@ _parse_header(struct ciff *dst, char **in)
  */
 #define PARSE64(v)                                      \
     if (rem < 8) {                                      \
-	warnx("%s: unexpected end of data", __func__);  \
+	cifferno = CIFF_ENOMORE;                        \
 	return NULL;                                    \
     }                                                   \
     v = INT64(*in);                                     \
-    *in += 8;                                           \
-    rem -= 8;
+    *in += 8; rem -= 8;
 
 	PARSE64(_csiz)
 	PARSE64(dst->ciff_width)
 	PARSE64(dst->ciff_height)
 
 	if (_csiz != 3 * dst->ciff_width * dst->ciff_height) {
-		warnx("%s: invalid content size", __func__);
+		cifferno = CIFF_ECSIZE;
 		return NULL;
 	}
 
@@ -106,20 +108,20 @@ _parse_header(struct ciff *dst, char **in)
  * encountered before rem runs out.
  * Set len to the length of string read.
  */
-#define PARSEUNTIL(c, what)                             \
+#define PARSEUNTIL(c, err)                              \
     for (p = *in; **in != (c); ++*in, --rem) {          \
 	if (rem == 0) {                                 \
-		warnx("%s: overlong " what, __func__);  \
+		cifferno = err;                         \
 		return NULL;                            \
 	}                                               \
     }                                                   \
     len = *in - p;                                      \
     ++*in; --rem;
 
-	PARSEUNTIL('\n', "caption");
+	PARSEUNTIL('\n', CIFF_ECAP);
 	++len;
 	if ((dst->ciff_cap = malloc(len)) == NULL) {
-		warn("%s: malloc", __func__);
+		cifferno = CIFF_EERRNO;
 		return NULL;
 	}
 	(void)strncpy(dst->ciff_cap, p, len - 1);
@@ -130,18 +132,18 @@ _parse_header(struct ciff *dst, char **in)
 	/* allocate one more slot for NULL termination */
 	if ((dst->ciff_tags = malloc((rem + 1) * sizeof (char *)))
 	    == NULL) {
-		warn("%s, malloc", __func__);
+		cifferno = CIFF_EERRNO;
 		return NULL;
 	}
 	for (i = 0; rem > 0; ++i) {
-		PARSEUNTIL('\0', "tag")
+		PARSEUNTIL('\0', CIFF_ETAG);
 		if (memchr(p, '\n', len) != NULL) {
-			warnx("%s: tag contains newline", __func__);
+			cifferno = CIFF_ETAG;
 			return NULL;
 		}
 
 		if ((dst->ciff_tags[i] = malloc(len)) == NULL) {
-			warn("%s: malloc", __func__);
+			cifferno = CIFF_EERRNO;
 			return NULL;
 		}
 		(void)strncpy(dst->ciff_tags[i], p, len);
@@ -162,7 +164,7 @@ _parse_pixels(struct ciff *ciff, char **in)
 
 	if ((ciff->ciff_content = malloc(ciff->ciff_width
 	    * ciff->ciff_height * sizeof (struct pixel))) == NULL) {
-		warn("%s: malloc", __func__);
+		cifferno = CIFF_EERRNO;
 		return NULL;
 	}
 
@@ -193,19 +195,23 @@ _px_flatten(unsigned char *dst, struct pixel *pxs,
 	return dst;
 }
 
-static void
+static size_t
 _print_separator(FILE *stream, size_t len)
 {
 	size_t  i;
 
 	for (i = 0; i < len; ++i)
 		if (putc('-', stream) == EOF) {
-			warn("%s: putc", __func__);
-			return;
+			cifferno = CIFF_EERRNO;
+			return i;
 		}
 
-	if (putc('\n', stream) == EOF)
-		warn("%s: putc", __func__);
+	if (putc('\n', stream) == EOF) {
+		cifferno = CIFF_EERRNO;
+		return i;
+	}
+
+	return i + 1;
 }
 
 
@@ -228,7 +234,10 @@ ciff_dump_header(FILE *stream, struct ciff *ciff)
 {
 	char  **tag;
 
-	_print_separator(stream, 64);
+	if (_print_separator(stream, 64) != 65)
+		(void)fprintf(stream,
+		    "failure while printing separator line: %s",
+		    ciff_strerror(cifferno));
 
 	(void)fprintf(stream, "Image width:\t%llu\n",
 	    ciff->ciff_width);
@@ -242,7 +251,10 @@ ciff_dump_header(FILE *stream, struct ciff *ciff)
 		(void)fprintf(stream, "[%s]", *tag);
 	(void)fprintf(stream, "\n");
 
-	_print_separator(stream, 64);
+	if (_print_separator(stream, 64) != 65)
+		(void)fprintf(stream,
+		    "failure while printing separator line: %s",
+		    ciff_strerror(cifferno));
 }
 
 void
@@ -278,13 +290,11 @@ ciff_jpeg_compress(unsigned char **dst, unsigned long *len,
 	/* 0. Init vars */
 	if ((data = malloc(3 * ciff->ciff_width * ciff->ciff_height))
 	    == NULL) {
-		warn("%s: malloc", __func__);
+		cifferno = CIFF_EERRNO;
 		return NULL;
 	}
-	if (_px_flatten(data, ciff->ciff_content, ciff->ciff_width,
-	    ciff->ciff_height)
-	    == NULL)
-		return NULL;
+	(void)_px_flatten(data, ciff->ciff_content, ciff->ciff_width,
+	    ciff->ciff_height);
 
 	/* 1. Allocate and init JPEG compression obj */
 	cinfo.err = jpeg_std_error(&jerr);
@@ -319,4 +329,23 @@ ciff_jpeg_compress(unsigned char **dst, unsigned long *len,
 	jpeg_destroy_compress(&cinfo);
 
 	return dst;
+}
+
+char *
+ciff_strerror(enum ciff_error err)
+{
+	switch (err) {
+	case CIFF_EERRNO:
+		return strerror(errno);
+	case CIFF_EMAGIC:
+		return "Invalid magic value";
+	case CIFF_ECSIZE:
+		return "Invalid content size value";
+	case CIFF_ECAP:
+		return "Caption too long";
+	case CIFF_ENOMORE:
+		return "Unexpected end of data";
+	default:
+		return "Unknown error";
+	}
 }

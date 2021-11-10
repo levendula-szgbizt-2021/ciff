@@ -14,7 +14,7 @@
 .\" OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 .\" TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 .\" PERFORMANCE OF THIS SOFTWARE.
-.Dd November 09, 2021
+.Dd November 10, 2021
 .\" ----------------------------------------------------------------
 .Dt CIFF 3
 .Os
@@ -26,8 +26,11 @@
 .Sh SYNOPSIS
 .In ciff.h
 .Pp
+.Fd enum ciff_error;
 .Fd struct pixel;
 .Fd struct ciff;
+.Pp
+.Fd enum ciff_error cifferno;
 .Pp
 .Ft struct ciff *
 .Fn ciff_parse "struct ciff *dst" "char *in"
@@ -38,6 +41,8 @@
 .Ft unsigned char **
 .Fn ciff_jpeg_compress "unsigned char **dst" "unsigned long *len" \
     "struct ciff *ciff"
+.Ft char *
+.Fn ciff_strerror "enum ciff_error err"
 .\" ----------------------------------------------------------------
 .Sh DESCRIPTION
 The
@@ -109,6 +114,24 @@ contains the length of the image data.
 See
 .Pa cli.c
 for an example on how this function can be used.
+.Pp
+Error handling in the
+.Nm
+library is implemented using an errno-like mechanism; see
+.Xr intro 2
+for more details on the standard errno. If any library call is
+unsuccessful, a special value (eg NULL) is returned, and the designated
+global variable
+.Fa cifferno
+is set to a value describing the error. To get a textual description of
+the error, use
+.Fn "ciff_strerror",
+which is akin to the standard
+.Xr strerror 3
+function.
+.Fa cifferno
+is never reset and so it is only meaningful to check its value if an
+error has been indicated by a function’s return value.
 .\" ----------------------------------------------------------------
 .Sh SEE ALSO
 .Xr ciff 1
@@ -129,3 +152,8 @@ team as part of an assignment submission for the Computer Security
 .\" ----------------------------------------------------------------
 .Sh AUTHORS
 .An Levendula team Aq Mt levendula-szgbizt@bp99.eu
+.\" ----------------------------------------------------------------
+.Sh CAVEATS
+The
+.Nm
+library is not and does not attempt to be thread-safe.

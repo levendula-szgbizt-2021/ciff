@@ -3,6 +3,17 @@
 
 #include <stdio.h>
 
+enum ciff_error {
+	CIFF_EERRNO     = -1,   /* standard error, consult errno */
+	CIFF_EMAGIC     = -2,   /* invalid magic value */
+	CIFF_ECSIZE     = -3,   /* invalid content size value */
+	CIFF_ECAP       = -4,   /* caption too long */
+	CIFF_ETAG       = -5,   /* tag too long or contains newline */
+	CIFF_ENOMORE    = -6,   /* no more data, ie unexpected end */
+};
+
+extern enum ciff_error          cifferno;
+
 struct pixel {
 	unsigned char           px_r;
 	unsigned char           px_g;
@@ -24,5 +35,7 @@ void                    ciff_dump_pixels(FILE *, struct ciff *);
 
 unsigned char **        ciff_jpeg_compress(unsigned char **,
 			    unsigned long *, struct ciff *);
+
+char *                  ciff_strerror(enum ciff_error);
 
 #endif /* CIFF_H */

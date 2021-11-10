@@ -1,6 +1,8 @@
 #include <err.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "ciff.h"
@@ -9,6 +11,9 @@
 
 static void     _usage(void);
 static void     _slurp(char **, size_t *, FILE *);
+static void     _dump(FILE *, char *, unsigned long);
+
+static void     _err(int, char const *, ...);
 
 static char const      *_progname;
 
@@ -69,6 +74,35 @@ _dump(FILE *target, char *data, unsigned long len)
 		err(1, "%s: fwrite", __func__);
 }
 
+static void
+_err(int eval, char const *fmt, ...)
+{
+	va_list ap;
+	size_t  fmtlen, seplen, estrlen;
+	char   *estr, *sep, *newfmt;
+
+	va_start(ap, fmt);
+
+	estr = ciff_strerror(cifferno);
+	sep = ": ";
+
+	fmtlen = strlen(fmt);
+	seplen = strlen(sep);
+	estrlen = strlen(estr);
+
+	if ((newfmt = malloc(fmtlen + seplen + estrlen + 1)) == NULL)
+		err(1, "malloc");
+	(void)strncpy(newfmt, fmt, fmtlen);
+	newfmt[fmtlen] = '\0';
+	(void)strncat(newfmt, sep, seplen);
+	(void)strncat(newfmt, estr, estrlen);
+
+	verrx(eval, newfmt, ap);
+
+	va_end(ap);
+	free(newfmt);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -81,6 +115,9 @@ main(int argc, char **argv)
 	char           *input;
 
 	_progname = argv[0];
+
+	cifferno = CIFF_ECAP;
+	_err(1, "ciff error");
 
 	dflag = 0, vflag = 0;
 	out = stdout;
