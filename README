@@ -1,6 +1,8 @@
 CIFF
 ====
 
+PREREQUISITES: you need jpeglib to build ciff
+
 This simple C library implements a parser for the CIFF format described
 in docs/spec.txt.
 
@@ -18,3 +20,5 @@ You may also remove both the library and the binary installed to PREFIX
 by
 
 	# make deinstall
+
+
