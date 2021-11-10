@@ -33,7 +33,7 @@
 .Fd enum ciff_error cifferrno;
 .Pp
 .Ft struct ciff *
-.Fn ciff_parse "struct ciff *dst" "char *in"
+.Fn ciff_parse "struct ciff *dst" "char *in" "size_t len"
 .Ft void
 .Fn ciff_dump_header "FILE *stream" "struct ciff *ciff"
 .Ft void
