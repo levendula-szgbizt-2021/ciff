@@ -156,7 +156,7 @@ main(int argc, char **argv)
 	output = NULL;
 	if (ciff_jpeg_compress(&output, &outlen, ciff) == NULL)
 		errx(1, "failed to compress to JPEG");
-	_dump(out, output, outlen);
+	_dump(out, (char *)output, outlen);
 
 	free(ciff);
 	free(output);
