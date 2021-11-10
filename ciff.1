@@ -20,7 +20,7 @@
 .Nd parse and convert CrySyS Image File Format files
 .Sh SYNOPSIS
 .Nm ciff
-.Op Fl hdv
+.Op Fl dhv
 .Op Fl o Ar output
 .Op input
 .Sh DESCRIPTION
@@ -46,8 +46,7 @@ Debugging mode: dumps the pixels of the parsed image to the standard
 error output. Beware, large images can practically flood your terminal!
 .It Fl v
 Be more verbose. This dumps information parsed from the CIFF header to
-the standard error output.
-in a pretty format.
+the standard error output in a pretty format.
 .Sh RETURN VALUES
 .Ex -std ciff
 It may fail for one of the following reasons:
