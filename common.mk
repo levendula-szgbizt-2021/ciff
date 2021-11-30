@@ -59,13 +59,15 @@ deinstall-man:
 
 install: install-lib install-cli install-man
 
+install-noman: install-lib install-cli
+
 deinstall: deinstall-lib deinstall-cli deinstall-man
 
 clean:
 	rm -f ${LIB} ${CLI} ${OBJS}
 
 .PHONY: clean
-.PHONY: install deinstall
+.PHONY: install intall-noman deinstall
 .PHONY: install-lib deinstall-lib
 .PHONY: install-cli deinstall-cli
 .PHONY: install-man deinstall-man
