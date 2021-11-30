@@ -29,7 +29,7 @@ ${LIB}: ${OBJS}
 	${AR} rcs ${LIB} ciff.o
 
 ${DLIB}: ${OBJS}
-	${CC} -shared -o ${DLIB} ${OBJS}
+	${CC} -shared -o ${DLIB} ${CFLAGS} ${OBJS}
 
 ${CLI}: ${OBJS}
 	${CC} -o ${CLI} ${CFLAGS} ${OBJS} ${LDFLAGS}
