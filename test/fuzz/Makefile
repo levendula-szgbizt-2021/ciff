@@ -16,7 +16,7 @@ fuzz: ${BIN} ${INPUT}
 
 ciff:
 	@make -C ${ROOT_DIR} clean
-	@make -C ${ROOT_DIR} CC=${AFLCC} ciff
-	@cp ${ROOT_DIR}/ciff ${BIN}
+	@make -C ${ROOT_DIR} CC=${AFLCC} ${BIN}
+	@cp ${ROOT_DIR}/${BIN} ${BIN}
 
 .PHONY: fuzz
