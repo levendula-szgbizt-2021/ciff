@@ -9,7 +9,7 @@ BIN             = ciff
 INPUT           = ${INPUT_DIR}/in_danger
 
 
-all: ciff fuzz
+all: ${BIN} fuzz
 
 fuzz: ${BIN} ${INPUT}
 	@mkdir -p ${OUTPUT_DIR}
@@ -23,7 +23,7 @@ ${INPUT}:
 	    -o ${INPUT} \
 	    danger 200 200
 
-ciff:
+${BIN}:
 	@make -C ${ROOT_DIR} clean
 	@make -C ${ROOT_DIR} CC=${AFLCC} ${BIN}
 	@cp ${ROOT_DIR}/${BIN} ${BIN}
