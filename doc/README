@@ -1,0 +1,34 @@
+We have tested the code using custom methods that can be found in the
+test directory. Please refer to the short documentation there.
+
+------------------------------------------------------------------------
+
+Fuzzing results
+---------------
+
+$ afl-fuzz -i afl_in/ -o afl_out -- ./ciff
+
+has been run: no crashes were found.
+
+(You can verify this by running make from the fuzz directory)
+
+------------------------------------------------------------------------
+
+Valgrind
+--------
+
+The code has been tested with valgrind for memory leaks.
+
+There are no memory leaks.
+
+Valgrind's logs have been placed in this directory: valgrind.log
+
+which is the output of
+
+	$ valgrind \
+	    --leak-check=full \
+	    --show-leak-kinds=all \
+	    --log-file=valgrind.log -- \
+	    ciff -vo/dev/null huflag.ciff
+
+2021-12-01
