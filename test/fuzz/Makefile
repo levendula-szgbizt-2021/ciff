@@ -9,7 +9,7 @@ BIN             = ciff
 INPUT           = ${INPUT_DIR}/in_danger
 
 
-all: ${BIN} fuzz
+all: fuzz
 
 fuzz: ${BIN} ${INPUT}
 	@mkdir -p ${OUTPUT_DIR}
