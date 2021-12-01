@@ -79,8 +79,9 @@ genbadtest - generate invalid CIFF test images
 
 =head1 SYNOPSIS
 
-genbadtest [-o output] [-s] errtype
+genbadtest [-h] [-o output] [-s] errtype
 
+  --help,-h     Show this help message
   --shorter, -s In case of {hsize, csize}, generate a shorter value
                 rather than a longer (the latter is the default)
   --output,-o   Output file (default is stdout)
