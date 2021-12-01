@@ -79,7 +79,7 @@ genbadtest - generate invalid CIFF test images
 
 =head1 SYNOPSIS
 
-gentest [-o output] [-s] errtype
+genbadtest [-o output] [-s] errtype
 
   --shorter, -s In case of {hsize, csize}, generate a shorter value
                 rather than a longer (the latter is the default)
