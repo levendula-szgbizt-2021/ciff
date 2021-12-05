@@ -12,6 +12,9 @@ has been run: no crashes were found.
 
 (You can verify this by running make from the fuzz directory)
 
+The results of 30 minutes of fuzzing can be seen in this directory, in
+fuzzing-summary.log
+
 ------------------------------------------------------------------------
 
 Valgrind
